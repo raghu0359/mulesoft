@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="a6b56117-99fd-4c22-b06c-53ad262c3e49" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<wsc:config name="Web_Service_Consumer_Config" doc:name="Web Service Consumer Config" doc:id="5a820ff3-ea9d-49a0-9eaf-869385375ea3" >
+		<wsc:connection wsdlLocation="http://www.dneonline.com/calculator.asmx?WSDL" service="Calculator" port="CalculatorSoap" address="http://www.dneonline.com/calculator.asmx" />
+	</wsc:config>
+	<flow name="soapFlow" doc:id="3fa99e67-574a-4be9-ae07-b4076ce8f0ad" >
+		<http:listener doc:name="Listener" doc:id="1ae323b9-4432-436c-a3a0-1acbd88bbc8d" config-ref="HTTP_Listener_config" path="soap"/>
+		<set-variable value="#[attributes.queryParams.number1]" doc:name="number1" doc:id="bd8175cf-b0a0-4244-938b-67dc14ae1dfc" variableName="number1"/>
+		<set-variable value="#[attributes.queryParams.number2]" doc:name="number2" doc:id="c214410b-b435-4c97-add5-503bf6a13923" variableName="number2"/>
+		<ee:transform doc:name="Transform Message" doc:id="b71c718e-7ec7-4be3-8862-6dfaacb9745b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+ns ns0 http://tempuri.org/
+---
+{
+	ns0#Add: {
+		ns0#intA: vars.number1 as Number,
+		ns0#intB: vars.number2 as Number
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<wsc:consume operation="Add" doc:id="0ebbef2d-e3b3-4ad4-b46d-72874d094267" config-ref="Web_Service_Consumer_Config"/>
+		<ee:transform doc:name="Transform Message" doc:id="54407fad-ac71-44c4-8831-7487f5659ba6" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="e3bb42d1-4895-4c22-8d11-034679cd430c" message="#[payload]"/>
+	</flow>
+</mule>
